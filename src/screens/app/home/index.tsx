@@ -34,6 +34,8 @@ export default function Home({}: HomeProps) {
         <SmallText>This is code of development</SmallText>
         <SmallText>This is code of development</SmallText>
         <SmallText>This is a code of feature one</SmallText>
+        <SmallText>This is a code of feature one - next</SmallText>
+        <SmallText>This is a code of feature one - next - next</SmallText>
       </View>
     </ScreenWrapper>
   );
