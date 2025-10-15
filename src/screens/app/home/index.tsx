@@ -32,6 +32,7 @@ export default function Home({}: HomeProps) {
         <Spacer vertical={10} />
         <Button onPress={handleLogout}>Logout</Button>
         <SmallText>This is code of development</SmallText>
+        <SmallText>This is code of development</SmallText>
       </View>
     </ScreenWrapper>
   );
