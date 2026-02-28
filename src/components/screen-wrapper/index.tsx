@@ -1,89 +1,141 @@
-import React from "react";
+import { useIsFocused } from '@react-navigation/native';
+import * as React from 'react';
+import { useMemo } from 'react';
 import {
-  ImageBackground,
   RefreshControl,
-  SafeAreaView,
+  ScrollViewProps,
   StatusBar,
   View,
-  ScrollViewProps,
+  ImageBackground,
   ImageResizeMode,
-  Platform,
-} from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useIsFocused } from "@react-navigation/native";
-import { EdgeInsets, useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppColors } from "~utils";
-import styles from "./styles";
-import { height } from "~utils/dimensions";
+  ImageSourcePropType,
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import {
+  EdgeInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
-interface ScreenWrapperProps {
+import styles from './styles';
+import { height } from '~utils/dimensions';
+import { AppColors } from '~utils';
+
+export interface ScreenWrapperProps {
   children: React.ReactNode;
   statusBarColor?: string;
   translucent?: boolean;
   scrollEnabled?: boolean;
-  backgroundImage?: any;
+  backgroundImage?: ImageSourcePropType;
   backgroundImageStyle?: object;
   backgroundColor?: string;
-  headerUnScrollable?: () => JSX.Element | null;
-  footerUnScrollable?: () => JSX.Element | null;
-  barStyle?: "default" | "light-content" | "dark-content";
-  onScroll?: ScrollViewProps["onScroll"];
+  headerUnScrollable?: () => React.ReactElement | null;
+  footerUnScrollable?: () => React.ReactElement | null;
+  barStyle?: 'default' | 'light-content' | 'dark-content';
+  onScroll?: ScrollViewProps['onScroll'];
   isRefreshing?: boolean;
-  resizeMode?: ImageResizeMode;
   enablePullToRefresh?: boolean;
   onRefresh?: () => void;
+  resizeMode?: ImageResizeMode;
+  applyBottomPadding?: boolean;
 }
 
 const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   children,
-  statusBarColor = AppColors.primary,
+  statusBarColor = AppColors.white,
   translucent = false,
   scrollEnabled = false,
   backgroundImage = null,
   backgroundImageStyle = {},
   backgroundColor = AppColors.white,
-  headerUnScrollable = () => null,
-  footerUnScrollable = () => null,
-  barStyle = "light-content",
+  headerUnScrollable,
+  footerUnScrollable,
+  barStyle = 'dark-content',
   onScroll = () => null,
   isRefreshing = false,
-  resizeMode = "cover",
   enablePullToRefresh = false,
   onRefresh = () => null,
+  resizeMode = 'cover',
+  applyBottomPadding = true,
 }) => {
   const insets: EdgeInsets = useSafeAreaInsets();
   const isFocused = useIsFocused();
 
-  // FocusAwareStatusBar handles status bar changes when the screen is focused
-  const FocusAwareStatusBar: React.FC<{
-    barStyle: "default" | "light-content" | "dark-content";
-    backgroundColor: string;
-    translucent: boolean;
-  }> = (props) => {
-    if (isFocused) {
-      return <StatusBar {...props} />;
+  /* ---------- Focus Aware StatusBar ---------- */
+
+  const FocusAwareStatusBar = useMemo(
+    () =>
+      ({ barStyle, backgroundColor, translucent }: any) =>
+        isFocused ? (
+          <StatusBar
+            animated
+            barStyle={barStyle}
+            backgroundColor={backgroundColor}
+            translucent={translucent}
+          />
+        ) : null,
+    [isFocused],
+  );
+
+  /* ---------- SafeArea Edges ---------- */
+
+  const safeAreaEdges: ('top' | 'bottom' | 'left' | 'right')[] =
+    applyBottomPadding
+      ? ['top', 'bottom', 'left', 'right']
+      : ['top', 'left', 'right'];
+
+  /* ---------- Memo Header/Footer ---------- */
+
+  const Header = headerUnScrollable?.();
+  const Footer = footerUnScrollable?.();
+
+  /* ---------- Scroll Content ---------- */
+
+  const renderScrollable = () => {
+    if (scrollEnabled) {
+      return (
+        <KeyboardAwareScrollView
+          refreshControl={
+            enablePullToRefresh ? (
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+              />
+            ) : undefined
+          }
+          onScroll={onScroll}
+          keyboardShouldPersistTaps="handled"
+          bottomOffset={height(4)}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            flexGrow: 1,
+            backgroundColor,
+            paddingBottom: applyBottomPadding ? insets.bottom : 0,
+          }}
+        >
+          {children}
+        </KeyboardAwareScrollView>
+      );
     }
-    return null;
+
+    return (
+      <View
+        style={[
+          styles.contentContainer,
+          {
+            backgroundColor,
+          },
+        ]}
+      >
+        {children}
+      </View>
+    );
   };
 
-  // Content rendering
+  /* ---------- Main Content ---------- */
+
   const content = () => (
-    <View
-      style={[
-        styles.contentContainer,
-        {
-          backgroundColor: backgroundImage
-            ? "transparent"
-            : statusBarColor
-            ? statusBarColor
-            : backgroundColor,
-          paddingTop:
-            (translucent || statusBarColor) && Platform.OS == "ios"
-              ? 0
-              : insets.top,
-        },
-      ]}
-    >
+    <>
       <FocusAwareStatusBar
         barStyle={barStyle}
         backgroundColor={statusBarColor}
@@ -91,68 +143,31 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       />
 
       <SafeAreaView
-        style={[
-          styles.safeArea,
-          {
-            backgroundColor: statusBarColor,
-            paddingTop: statusBarColor ? 0 : insets.top,
-          },
-        ]}
-      />
-
-      {headerUnScrollable()}
-
-      {scrollEnabled ? (
-        <KeyboardAwareScrollView
-          refreshControl={
-            enablePullToRefresh ? (
-              <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-            ) : undefined
-          }
-          onScroll={onScroll}
-          style={[!backgroundImage && { backgroundColor }]}
-          keyboardShouldPersistTaps="handled"
-          enableOnAndroid={true}
-          enableAutomaticScroll
-          scrollEnabled
-          contentContainerStyle={{ flexGrow: 1 }}
-          extraScrollHeight={height(2)}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </KeyboardAwareScrollView>
-      ) : (
-        <View
-          style={[
-            styles.contentContainer,
-            !backgroundImage && { backgroundColor },
-          ]}
-        >
-          {children}
-        </View>
-      )}
-
-      {footerUnScrollable()}
-    </View>
+        style={{ flex: 1, backgroundColor }}
+        edges={safeAreaEdges}
+      >
+        {Header}
+        {renderScrollable()}
+        {Footer}
+      </SafeAreaView>
+    </>
   );
 
-  return backgroundImage ? (
-    <ImageBackground
-      source={backgroundImage}
-      style={[
-        styles.backgroundImage,
-        backgroundImageStyle,
-        !translucent && {
-          marginTop: statusBarColor && Platform.OS == "ios" ? 0 : insets.top,
-        },
-      ]}
-      resizeMode={resizeMode}
-    >
-      {content()}
-    </ImageBackground>
-  ) : (
-    content()
-  );
+  /* ---------- Background Image ---------- */
+
+  if (backgroundImage) {
+    return (
+      <ImageBackground
+        source={backgroundImage}
+        resizeMode={resizeMode}
+        style={[styles.backgroundImage, backgroundImageStyle]}
+      >
+        {content()}
+      </ImageBackground>
+    );
+  }
+
+  return content();
 };
 
 export default ScreenWrapper;
