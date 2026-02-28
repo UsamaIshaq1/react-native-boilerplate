@@ -31,14 +31,6 @@ export default function Home({}: HomeProps) {
         <SmallText>Hey {userInfo?.email}</SmallText>
         <Spacer vertical={10} />
         <Button onPress={handleLogout}>Logout</Button>
-        <SmallText>This is code of development</SmallText>
-        <SmallText>This is code of development</SmallText>
-        <SmallText>This is code of feature 3</SmallText>
-        <SmallText>This is a code of feature one</SmallText>
-        <SmallText>This is a code of feature one - next</SmallText>
-        <SmallText>This is a code of feature one - next - next</SmallText>
-        <SmallText>This is a code of feature one - Option 1</SmallText>
-        <SmallText>This is a code of feature one - Option 2</SmallText>
       </View>
     </ScreenWrapper>
   );
